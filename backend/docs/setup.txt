@@ -1,0 +1,10 @@
+uvicorn app:app --reload --port 8000
+
+
+
+pip install fastapi uvicorn sentence-transformers chromadb tf-keras
+pip install pandas
+
+
+
+uvicorn main:app --reload 
