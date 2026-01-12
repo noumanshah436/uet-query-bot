@@ -1,8 +1,8 @@
 """create chat_history model
 
-Revision ID: db32a791dfb9
+Revision ID: fcc010a0ca7b
 Revises: 
-Create Date: 2026-01-12 17:12:52.782554
+Create Date: 2026-01-13 00:10:21.415803
 
 """
 from typing import Sequence, Union
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = 'db32a791dfb9'
+revision: str = 'fcc010a0ca7b'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

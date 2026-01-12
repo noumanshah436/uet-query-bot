@@ -1,11 +1,12 @@
 from fastapi import APIRouter, HTTPException
 import os
 import json
+from loguru import logger
+
 from src.schemas.request import IngestRequest
 from src.utils.chuncker import chunk_text
 from src.utils.pdf_reader import read_pdf
-from src.providers.chroma_provider import add_chunks
-
+from src.vector_store.chroma import ChromaVectorStore
 
 router = APIRouter()
 
@@ -13,32 +14,53 @@ router = APIRouter()
 def save_chunks_to_file(chunks: list[str], file_path: str):
     with open(file_path, "w", encoding="utf-8") as f:
         json.dump(chunks, f, ensure_ascii=False, indent=2)
-    print(f"Chunks saved to {file_path}")
+    logger.info(f"Chunks saved to file: {file_path}")
 
 
 @router.post("/pdf")
 def ingest_pdf(request: IngestRequest):
+    logger.info(f"Starting PDF ingestion: {request.file_path}")
+
     if not os.path.exists(request.file_path):
-        raise HTTPException(status_code=404, detail="File not found")
+        logger.error("File not found")
+        raise HTTPException(404, "File not found")
 
-    # Read and clean PDF
     text = read_pdf(request.file_path)
+    logger.info("PDF read successfully")
+
     if not text.strip():
-        raise HTTPException(status_code=400, detail="No text extracted")
+        logger.error("No text extracted from PDF")
+        raise HTTPException(400, "No text extracted")
 
-    # Create chunks
     chunks = chunk_text(text)
-    if not chunks:
-        raise HTTPException(status_code=400, detail="No chunks created from PDF")
+    logger.info(f"Text chunked into {len(chunks)} chunks")
 
-    # Save chunks as a list of strings
+    if not chunks:
+        logger.error("No chunks created")
+        raise HTTPException(400, "No chunks created")
+
+    store = ChromaVectorStore.get_instance()
+    logger.info("ChromaVectorStore instance retrieved")
+
+    embeddings = store.embed(chunks)
+    logger.info("Embeddings created")
+
+    start_index = store.collection.count()
+    ids = [
+        f"{os.path.basename(request.file_path)}_{i}"
+        for i in range(start_index, start_index + len(chunks))
+    ]
+    metadatas = [{"source": os.path.basename(request.file_path)} for _ in chunks]
+
+    store.add(ids=ids, documents=chunks, embeddings=embeddings, metadatas=metadatas)
+    logger.info("Chunks added to ChromaDB")
+
     output_file = (
         os.path.splitext(os.path.basename(request.file_path))[0] + "_chunks.json"
     )
     save_chunks_to_file(chunks, output_file)
 
-    # Optionally add to your embeddings collection
-    add_chunks(chunks, source=os.path.basename(request.file_path))
+    logger.info("PDF ingestion completed")
 
     return {
         "message": "PDF ingested successfully",

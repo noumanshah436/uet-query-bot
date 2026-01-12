@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 class IngestRequest(BaseModel):
-    file_path: str
+    file_path: str = "docs/UET lahore Document.pdf"
 
 
 class QueryRequest(BaseModel):

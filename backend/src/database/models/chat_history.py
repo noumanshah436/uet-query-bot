@@ -1,5 +1,5 @@
 import uuid
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, Text, DateTime
 from src.database.config import Base
 
@@ -17,7 +17,6 @@ class ChatHistory(Base):
 
     created_at = Column(
         DateTime(timezone=True),
-        default=datetime.now(UTC),
-        onupdate=datetime.now(UTC),
+        default=lambda: datetime.now(timezone.utc),
         nullable=False,
     )

@@ -1,14 +1,24 @@
 from fastapi import APIRouter
+from loguru import logger
 from src.schemas.request import QueryRequest
-from src.providers.chroma_provider import query_chunks
+from src.vector_store.chroma import ChromaVectorStore
 
 router = APIRouter()
 
 
 @router.post("/")
 def search(request: QueryRequest):
-    results = query_chunks(request.question, request.top_k)
+    logger.info(f"Received search query: {request.question}")
+
+    store = ChromaVectorStore.get_instance()
+    logger.info("ChromaVectorStore instance retrieved")
+
+    results = store.get_top_chunks(
+        question=request.question,
+        top_k=request.top_k,
+    )
+
     return {
         "query": request.question,
-        "results": results
+        "results": results,
     }
