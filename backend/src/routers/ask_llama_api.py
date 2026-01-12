@@ -1,7 +1,14 @@
-from fastapi import APIRouter, HTTPException
+import json
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 import ollama
+from src.schemas.rag import RAGResponse
+from src.repository.chat_history import create_chat_history
+from src.schemas.chat_history import ChatHistoryCreate
+from src.database.config import get_db
 from src.providers.chroma_provider import query_chunks
+from sqlalchemy.orm import Session
+
 
 router = APIRouter()
 
@@ -53,7 +60,7 @@ def build_rag_prompt(question: str, top_chunks: list[str]) -> str:
 # API endpoint
 # -----------------------------
 @router.post("/")
-def ask_llama_rag(request: QueryRequest):
+def ask_llama_rag(request: QueryRequest, db: Session = Depends(get_db)) -> RAGResponse:
     # Step 1: Retrieve top chunks from ChromaDB
     results = query_chunks(request.question)
     if not results:
@@ -65,15 +72,32 @@ def ask_llama_rag(request: QueryRequest):
     prompt = build_rag_prompt(request.question, top_texts)
 
     # Step 3: Call Ollama
+    # gemma3:4b
     try:
         response = ollama.chat(
             model="llama3.2", messages=[{"role": "user", "content": prompt}]
         )
+
+        # response = ollama.chat(
+        #     model="gemma3:4b", messages=[{"role": "user", "content": prompt}]
+        # )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ollama error: {str(e)}")
 
-    return {
-        "query": request.question,
-        "answer": response["message"]["content"],
-        "top_chunks_used": top_texts,
-    }
+    answer = response["message"]["content"]
+
+    # Step 4: Store chat history
+    history_data = ChatHistoryCreate(
+        question=request.question,
+        answer=answer,
+        source_chunks=json.dumps(top_texts),  # SQLite-safe
+    )
+    create_chat_history(history_data, db)
+
+    # Step 5: Return response
+    return RAGResponse(
+        success=True,
+        question=request.question,
+        answer=answer,
+        sources=top_texts,
+    )

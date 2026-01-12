@@ -7,4 +7,4 @@ pip install pandas
 
 
 
-uvicorn main:app --reload 
+
