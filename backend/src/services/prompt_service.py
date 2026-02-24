@@ -12,7 +12,7 @@ class PromptService:
             "- Check eligibility lists carefully if present.\n"
             "- Reference context sections if helpful.\n"
             "- Combine info from multiple chunks if needed.\n"
-            "- Say 'The information is not provided in the context.' if unknown.\n"
+            "- Must Say 'The information is not provided in the context.' If the question is not related to a department.\n"
             "- Do NOT output JSON, braces, lists, or code.\n\n"
             "Answer:"
         )

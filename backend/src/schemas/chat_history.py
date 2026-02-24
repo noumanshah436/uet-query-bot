@@ -30,3 +30,7 @@ class ChatHistoryResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ChatHistoryWrapperResponse(BaseModel):
+    success: bool
+    history: List[ChatHistoryResponse]
